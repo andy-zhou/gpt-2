@@ -1,0 +1,74 @@
+# Implemented from scratch, mostly following the API of nn.MultiheadAttention
+# Goal is that this can load weights from HF
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from .linear_transposed import LinearTransposed
+
+
+class MultiheadAttention(nn.Module):
+    # The attention mask is called "bias" in the gpt2 model
+    # https://github.com/huggingface/transformers/issues/1419#issuecomment-538505604
+    bias: torch.Tensor
+
+    def __init__(
+        self,
+        embed_dim: int,
+        num_heads: int,
+        context_len: int,  # not in pytorch, but needed if we want to initialize the mask as a buffer
+        dropout=0.0,
+        kdim: int | None = None,
+        vdim: int | None = None,
+        # The below are different from Pytorch's default values:
+        # batch_first = True
+        # bias = False
+    ):
+        super().__init__()
+
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.kdim = kdim if kdim is not None else embed_dim // self.num_heads
+        self.vdim = vdim if vdim is not None else embed_dim // self.num_heads
+
+        self.c_attn = LinearTransposed(
+            self.embed_dim,
+            self.kdim * self.num_heads * 2 + self.vdim * self.num_heads,
+        )
+        self.c_proj = LinearTransposed(self.vdim * self.num_heads, self.embed_dim)
+        self.dropout = nn.Dropout(dropout)
+
+        self.register_buffer(
+            "bias",
+            torch.tril(torch.ones(1).expand(context_len, context_len)),
+            persistent=False,  # Don't try to load this from HF weights
+        )
+
+    def forward(self, x: torch.Tensor):
+        B, T, _ = x.shape
+
+        query, key, value = self.c_attn(x).split(
+            [
+                self.kdim * self.num_heads,
+                self.kdim * self.num_heads,
+                self.vdim * self.num_heads,
+            ],
+            dim=-1,
+        )
+
+        assert isinstance(key, torch.Tensor)
+        assert isinstance(query, torch.Tensor)
+        assert isinstance(value, torch.Tensor)
+
+        query = query.view(B, T, self.num_heads, self.kdim)
+        key = key.view(B, T, self.num_heads, self.kdim)
+        value = value.view(B, T, self.num_heads, self.vdim)
+
+        attn_weights = torch.einsum("bthk,bihk->bhti", query, key) * (self.kdim**-0.5)
+        attn_mask = self.bias[:T, :T] == 0
+        attn_weights = attn_weights.masked_fill(attn_mask, float("-inf"))
+        attn_weights = F.softmax(attn_weights, dim=-1)
+
+        c = torch.einsum("bhti,bihv->bthv", attn_weights, value).contiguous()
+        c = c.view(B, T, self.num_heads * self.vdim)
+
+        return self.dropout(self.c_proj(c))
