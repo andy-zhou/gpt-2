@@ -53,8 +53,20 @@ class TransformerModel(nn.Module):
                 for _ in range(layers)
             ]
         )
+        self.scale_residual_weights()
 
         self.ln_f = nn.LayerNorm(embed_dim)
+
+    @torch.no_grad
+    def scale_residual_weights(self):
+        """
+        Scale the attention weights to account for residual stream std inflation
+        from TransformerBlocks all contributing to the std of the residual stream
+        """
+        scaling_factor = len(self.h) ** -0.5
+        for layer in self.h:
+            assert isinstance(layer, TransformerBlock)
+            layer.attn.c_proj.weight *= scaling_factor
 
     def forward(self, x: torch.Tensor):
         _, T = x.shape
