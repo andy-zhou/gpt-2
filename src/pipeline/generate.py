@@ -15,15 +15,16 @@ def generate_completion(
     completion_len=40,
     generator: torch.Generator | None = None,
     loading_bar_prefix: str | None = None,
+    device: str = "cpu",
 ) -> list[str]:
     model.eval()
 
-    context = torch.tensor(tokenizer.encode(prompt), dtype=torch.long).expand(
-        num_completions, -1
-    )
-    for _ in tqdm(range(completion_len), desc=loading_bar_prefix):
+    context = torch.tensor(
+        tokenizer.encode(prompt), dtype=torch.long, device=device
+    ).expand(num_completions, -1)
+    for _ in tqdm(range(completion_len), desc=f"{loading_bar_prefix} ({device})"):
         logits = model(context).logits
-        assert isinstance(logits, torch.FloatTensor)
+        assert isinstance(logits, torch.Tensor)
         probs = F.softmax(logits[:, -1, :], dim=-1)
         next_token = torch.multinomial(probs, num_samples=1, generator=generator)
         context = torch.cat([context, next_token], dim=-1)
