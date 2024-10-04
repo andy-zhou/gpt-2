@@ -3,7 +3,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .linear_transposed import LinearTransposed
+
+from .linear import TransposedLinear
 
 
 class MultiheadAttention(nn.Module):
@@ -30,11 +31,11 @@ class MultiheadAttention(nn.Module):
         self.kdim = kdim if kdim is not None else embed_dim // self.num_heads
         self.vdim = vdim if vdim is not None else embed_dim // self.num_heads
 
-        self.c_attn = LinearTransposed(
+        self.c_attn = TransposedLinear(
             self.embed_dim,
             self.kdim * self.num_heads * 2 + self.vdim * self.num_heads,
         )
-        self.c_proj = LinearTransposed(self.vdim * self.num_heads, self.embed_dim)
+        self.c_proj = TransposedLinear(self.vdim * self.num_heads, self.embed_dim)
         self.dropout = nn.Dropout(dropout)
 
         self.register_buffer(

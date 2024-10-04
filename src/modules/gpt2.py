@@ -4,11 +4,15 @@ import torch.nn.functional as F
 from dataclasses import dataclass
 
 from .transformer import TransformerModel
+from .linear import TiedLinear
 
 
-# Emulates the GPT2 output class
 @dataclass
 class GPT2Output:
+    """
+    Emulates the GPT2 output class
+    """
+
     loss: torch.Tensor | None
     logits: torch.Tensor
 
@@ -27,9 +31,7 @@ class GPT2(nn.Module):
         self.transformer = TransformerModel(
             vocab_size, embed_dim, context_len, layers, dropout=dropout
         )
-        # lm_head uses nn.Linear instead of Conv1d
-        # See https://github.com/huggingface/transformers/blob/d7950bff82b18c823193d17d72188c5e46d06c83/src/transformers/models/gpt2/modeling_gpt2.py#L1192
-        self.lm_head = nn.Linear(embed_dim, vocab_size, bias=False)
+        self.lm_head = TiedLinear(self.transformer.wte)
 
     def forward(
         self, context: torch.LongTensor, labels: torch.LongTensor | None = None
