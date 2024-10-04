@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .attention import MultiheadAttention
+from .embedding import Embedding
 from .mlp import MLP
 
 
@@ -38,8 +39,9 @@ class TransformerModel(nn.Module):
     ):
         super().__init__()
 
-        self.wte = nn.Embedding(vocab_size, embed_dim)
-        self.wpe = nn.Embedding(context_len, embed_dim)
+        self.wte = Embedding(vocab_size, embed_dim, std=0.02)
+        # Positional embeddings have a different std for some reason
+        self.wpe = Embedding(context_len, embed_dim, std=0.01)
         # Is a buffer here is idiomatic? I like that it responds to model.to(device)
         self.register_buffer(
             "position_idx", torch.arange(context_len), persistent=False

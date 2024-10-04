@@ -1,7 +1,9 @@
 # A collection of special linear layers
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from torch.nn import functional as F, init
+
+from .embedding import Embedding
 
 
 class TransposedLinear(nn.Module):
@@ -15,13 +17,18 @@ class TransposedLinear(nn.Module):
     gpt-2: https://github.com/huggingface/transformers/blob/main/src/transformers/pytorch_utils.py#L87
     """
 
-    def __init__(self, fan_in: int, fan_out: int, bias=True):
+    def __init__(self, fan_in: int, fan_out: int, std=1.0, bias=True):
         super().__init__()
-        self.weight = nn.Parameter(torch.randn((fan_in, fan_out)) * fan_in**-0.5)
+        self.std = std
+        self.weight = nn.Parameter(torch.empty((fan_in, fan_out)))
         if bias:
-            self.bias = nn.Parameter(torch.randn((fan_out,)) * fan_in**-0.5)
+            self.bias = nn.Parameter(torch.empty((fan_out,)))
         else:
             self.register_parameter("bias", None)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        init.normal_(self.weight, std=self.std)
 
     def forward(self, x: torch.Tensor):
         x = x @ self.weight
@@ -35,9 +42,8 @@ class TiedLinear(nn.Module):
     A linear layer with weights tied to an embedding layer. See https://arxiv.org/pdf/1608.05859.
     """
 
-    def __init__(self, tied_embedding_layer: nn.Embedding):
+    def __init__(self, tied_embedding_layer: Embedding):
         super().__init__()
-        # tied_embedding_layer.weight is a nn.Parameter
         self.weight = tied_embedding_layer.weight
 
     def forward(self, x: torch.Tensor):

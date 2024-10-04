@@ -34,8 +34,11 @@ class MultiheadAttention(nn.Module):
         self.c_attn = TransposedLinear(
             self.embed_dim,
             self.kdim * self.num_heads * 2 + self.vdim * self.num_heads,
+            std=0.02,
         )
-        self.c_proj = TransposedLinear(self.vdim * self.num_heads, self.embed_dim)
+        self.c_proj = TransposedLinear(
+            self.vdim * self.num_heads, self.embed_dim, std=0.02
+        )
         self.dropout = nn.Dropout(dropout)
 
         self.register_buffer(
