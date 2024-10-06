@@ -38,7 +38,7 @@ class GPT2(nn.Module):
     ):
         logits: torch.FloatTensor = self.lm_head(self.transformer(context))
         loss = (
-            F.cross_entropy(logits.transpose(1, -1), labels.view(1, -1))
+            F.cross_entropy(logits.transpose(1, -1), labels)
             if labels is not None
             else None
         )

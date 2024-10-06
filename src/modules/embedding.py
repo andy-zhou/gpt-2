@@ -12,9 +12,9 @@ class Embedding(nn.Module):
         super().__init__()
         self.weight = nn.Parameter(torch.empty(num_embeddings, embedding_dim))
         self.std = std
-        self.reset_parameters()
+        self._init_parameters()
 
-    def reset_parameters(self):
+    def _init_parameters(self):
         init.normal_(self.weight, std=self.std)
 
     def forward(self, x: torch.LongTensor):

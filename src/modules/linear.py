@@ -22,12 +22,12 @@ class TransposedLinear(nn.Module):
         self.std = std
         self.weight = nn.Parameter(torch.empty((fan_in, fan_out)))
         if bias:
-            self.bias = nn.Parameter(torch.empty((fan_out,)))
+            self.bias = nn.Parameter(torch.zeros((fan_out,)))
         else:
             self.register_parameter("bias", None)
-        self.reset_parameters()
+        self._init_parameters()
 
-    def reset_parameters(self):
+    def _init_parameters(self):
         init.normal_(self.weight, std=self.std)
 
     def forward(self, x: torch.Tensor):
