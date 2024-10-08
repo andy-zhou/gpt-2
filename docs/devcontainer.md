@@ -107,3 +107,5 @@ sudo docker run --gpus all nvidia/cuda:12.6.1-devel-ubuntu24.04 nvidia-smi
 ## Dev Container
 
 See [docs](https://pixi.sh/latest/ide_integration/devcontainer/)
+
+Something unexpected: The devcontainer will use your local machine's SSH agent, not the remote host's.
