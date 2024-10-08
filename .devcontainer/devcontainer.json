@@ -26,5 +26,6 @@
     "source=${localWorkspaceFolderBasename}-pixi,target=${containerWorkspaceFolder}/.pixi,type=volume"
   ],
   "runArgs": ["--gpus", "all"],
-  "postCreateCommand": "sudo chown vscode .pixi && pixi install"
+  "postCreateCommand": "sudo chown vscode .pixi && pixi install",
+  "shutdownAction": "none"
 }
