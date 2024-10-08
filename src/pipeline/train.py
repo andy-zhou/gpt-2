@@ -1,9 +1,9 @@
 import torch
 import math
 from torch.utils.data import Dataset, DataLoader
-from tqdm import trange, tqdm
+from tqdm.autonotebook import trange, tqdm
 
-from ..modules import GPT2, GPT2Output
+from ..modules import GPT2
 
 
 def pad_num(num: int, padding_multiple: int = 2):
@@ -17,6 +17,7 @@ def train_gpt2(
     dataset: Dataset,
     batch_size=4,
     num_epochs=1,
+    logging_interval=100,
     lr=3e-4,
     device="cpu",
     generator=None,
@@ -33,7 +34,7 @@ def train_gpt2(
 
     for epoch in trange(num_epochs, desc="Epoch", unit=" epochs"):
         for minibatch, (context, labels) in enumerate(
-            tqdm(dataloader, desc="Minibatch")
+            tqdm(dataloader, desc="Minibatch", leave=False)
         ):
             assert isinstance(context, torch.Tensor)
             assert isinstance(labels, torch.Tensor)
@@ -47,6 +48,7 @@ def train_gpt2(
             loss.backward()
             optim.step()
 
-            tqdm.write(
-                f"[Epoch {pad_num(epoch)}, Minibatch {pad_num(minibatch)}]: Loss={loss.item():.4f}"
-            )
+            if minibatch % logging_interval == 0:
+                tqdm.write(
+                    f"[Epoch {pad_num(epoch)}, Minibatch {pad_num(minibatch)}]: Loss={loss.item():.4f}",
+                )

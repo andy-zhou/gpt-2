@@ -7,14 +7,17 @@
   "customizations": {
     "vscode": {
       "settings": {},
-      "extensions": ["ms-python.python", "charliermarsh.ruff", "GitHub.copilot"]
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "GitHub.copilot",
+        "ms-toolsai.jupyter"
+      ]
     }
   },
   "features": {
-    "ghcr.io/devcontainers/features/nvidia-cuda:1": {
-      "installToolkit": true,
-      "cudaVersion": 12.4
-    }
+    "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/devcontainers/features/git:1": {}
   },
   "hostRequirements": {
     "gpu": "optional"
@@ -22,5 +25,6 @@
   "mounts": [
     "source=${localWorkspaceFolderBasename}-pixi,target=${containerWorkspaceFolder}/.pixi,type=volume"
   ],
+  "runArgs": ["--gpus", "all"],
   "postCreateCommand": "sudo chown vscode .pixi && pixi install"
 }
