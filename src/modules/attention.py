@@ -20,6 +20,7 @@ class MultiheadAttention(nn.Module):
         dropout=0.0,
         kdim: int | None = None,
         vdim: int | None = None,
+        use_flash_attention: bool = False,
         # The below are different from Pytorch's default values:
         # batch_first = True
         # bias = False
@@ -47,6 +48,8 @@ class MultiheadAttention(nn.Module):
             persistent=False,  # Don't try to load this from HF weights
         )
 
+        self.use_flash_attention = use_flash_attention
+
     def forward(self, x: torch.Tensor):
         B, T, _ = x.shape
 
@@ -66,13 +69,28 @@ class MultiheadAttention(nn.Module):
         query = query.view(B, T, self.num_heads, self.kdim)
         key = key.view(B, T, self.num_heads, self.kdim)
         value = value.view(B, T, self.num_heads, self.vdim)
+        attn_mask = self.bias[:T, :T] == 1
 
-        attn_weights = torch.einsum("bthk,bihk->bhti", query, key) * (self.kdim**-0.5)
-        attn_mask = self.bias[:T, :T] == 0
-        attn_weights = attn_weights.masked_fill(attn_mask, float("-inf"))
-        attn_weights = F.softmax(attn_weights, dim=-1)
+        if self.use_flash_attention:
+            query = query.transpose(1, 2)
+            key = key.transpose(1, 2)
+            value = value.transpose(1, 2)
+            c = F.scaled_dot_product_attention(
+                query,
+                key,
+                value,
+                attn_mask,
+            )
+            c = c.transpose(1, 2).contiguous()
+        else:
+            attn_weights = torch.einsum("bthk,bihk->bhti", query, key) * (
+                self.kdim**-0.5
+            )
+            attn_weights = attn_weights.masked_fill(
+                attn_mask.logical_not(), float("-inf")
+            )
+            attn_weights = F.softmax(attn_weights, dim=-1)
+            c = torch.einsum("bhti,bihv->bthv", attn_weights, value).contiguous()
 
-        c = torch.einsum("bhti,bihv->bthv", attn_weights, value).contiguous()
         c = c.view(B, T, self.num_heads * self.vdim)
-
         return self.dropout(self.c_proj(c))

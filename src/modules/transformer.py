@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from .attention import MultiheadAttention
 from .embedding import Embedding
@@ -8,12 +7,23 @@ from .mlp import MLP
 
 
 class TransformerBlock(nn.Module):
-    def __init__(self, embed_dim: int, num_heads: int, context_len: int, dropout=0.0):
+    def __init__(
+        self,
+        embed_dim: int,
+        num_heads: int,
+        context_len: int,
+        dropout=0.0,
+        use_flash_attention: bool = False,
+    ):
         super().__init__()
 
         self.ln_1 = nn.LayerNorm(embed_dim)
         self.attn = MultiheadAttention(
-            embed_dim, num_heads, context_len, dropout=dropout
+            embed_dim,
+            num_heads,
+            context_len,
+            dropout=dropout,
+            use_flash_attention=use_flash_attention,
         )
         self.ln_2 = nn.LayerNorm(embed_dim)
         self.mlp = MLP(embed_dim)
@@ -36,6 +46,7 @@ class TransformerModel(nn.Module):
         layers: int,
         num_heads=12,
         dropout=0.0,
+        use_flash_attention: bool = False,
     ):
         super().__init__()
 
@@ -49,7 +60,13 @@ class TransformerModel(nn.Module):
 
         self.h = nn.Sequential(
             *[
-                TransformerBlock(embed_dim, num_heads, context_len, dropout=dropout)
+                TransformerBlock(
+                    embed_dim,
+                    num_heads,
+                    context_len,
+                    dropout=dropout,
+                    use_flash_attention=use_flash_attention,
+                )
                 for _ in range(layers)
             ]
         )

@@ -25,11 +25,17 @@ class GPT2(nn.Module):
         context_len: int,
         layers: int,
         dropout=0.0,
+        use_flash_attention: bool = False,
     ):
         super().__init__()
 
         self.transformer = TransformerModel(
-            vocab_size, embed_dim, context_len, layers, dropout=dropout
+            vocab_size,
+            embed_dim,
+            context_len,
+            layers,
+            dropout=dropout,
+            use_flash_attention=use_flash_attention,
         )
         self.lm_head = TiedLinear(self.transformer.wte)
 
