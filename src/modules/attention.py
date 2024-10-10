@@ -10,7 +10,7 @@ from .linear import TransposedLinear
 class MultiheadAttention(nn.Module):
     # The attention mask is called "bias" in the gpt2 model
     # https://github.com/huggingface/transformers/issues/1419#issuecomment-538505604
-    bias: torch.Tensor
+    bias: torch.Tensor | None
 
     def __init__(
         self,
@@ -42,13 +42,14 @@ class MultiheadAttention(nn.Module):
         )
         self.dropout = nn.Dropout(dropout)
 
-        self.register_buffer(
-            "bias",
-            torch.tril(torch.ones(1).expand(context_len, context_len)),
-            persistent=False,  # Don't try to load this from HF weights
-        )
-
-        self.use_flash_attention = use_flash_attention
+        if use_flash_attention:
+            self.register_buffer("bias", None)
+        else:
+            self.register_buffer(
+                "bias",
+                torch.tril(torch.ones(1).expand(context_len, context_len)),
+                persistent=False,  # Don't try to load this from HF weights
+            )
 
     def forward(self, x: torch.Tensor):
         B, T, _ = x.shape
@@ -69,9 +70,8 @@ class MultiheadAttention(nn.Module):
         query = query.view(B, T, self.num_heads, self.kdim)
         key = key.view(B, T, self.num_heads, self.kdim)
         value = value.view(B, T, self.num_heads, self.vdim)
-        attn_mask = self.bias[:T, :T] == 1
 
-        if self.use_flash_attention:
+        if self.bias is None:
             query = query.transpose(1, 2)
             key = key.transpose(1, 2)
             value = value.transpose(1, 2)
@@ -79,10 +79,11 @@ class MultiheadAttention(nn.Module):
                 query,
                 key,
                 value,
-                attn_mask,
+                is_causal=True,
             )
             c = c.transpose(1, 2).contiguous()
         else:
+            attn_mask = self.bias[:T, :T] == 1
             attn_weights = torch.einsum("bthk,bihk->bhti", query, key) * (
                 self.kdim**-0.5
             )

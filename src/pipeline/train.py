@@ -1,4 +1,5 @@
 from statistics import mean
+from typing import Callable
 import torch
 import torch.amp
 from torch.utils.data import Dataset, DataLoader
@@ -64,12 +65,14 @@ def train_gpt2(
     logging_interval: int | None = None,
     log_final_iteration: bool = True,
     label: str | None = None,
+    # Callbacks
+    batch_complete_hook: Callable | None = None,
 ) -> GPT2:
     assert device == "cuda", "Only cuda is supported for training"
     if enable_tf32:
-        torch.set_float32_matmul_precision('high')
+        torch.set_float32_matmul_precision("high")
     else:
-        torch.set_float32_matmul_precision('highest')
+        torch.set_float32_matmul_precision("highest")
 
     optim = torch.optim.AdamW(model.parameters(), lr=lr)
     dataloader = DataLoader(
@@ -123,6 +126,10 @@ def train_gpt2(
             stat_tracker.record_backward_time(backward.elapsed_time(end))
             stat_tracker.record_tokens_processed(context.numel())
             progress_bar.update()
+
+            # Call hook
+            if batch_complete_hook is not None:
+                batch_complete_hook()
 
             if (
                 logging_interval is not None
