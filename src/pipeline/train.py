@@ -1,5 +1,6 @@
 from statistics import mean
 import torch
+import torch.amp
 from torch.utils.data import Dataset, DataLoader
 from tqdm.autonotebook import trange
 
@@ -56,10 +57,20 @@ def train_gpt2(
     lr: float = 3e-4,
     generator: torch.Generator | None = None,
     device: str = "cuda",
+    # Optimization Params
+    enable_tf32: bool = False,
+    enable_bf16_amp: bool = False,
     # Logging Params
-    logging_interval: int = 10,
+    logging_interval: int | None = None,
+    log_final_iteration: bool = True,
 ) -> GPT2:
     assert device == "cuda", "Only cuda is supported for training"
+    if enable_tf32:
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+    else:
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.backends.cudnn.allow_tf32 = False
 
     optim = torch.optim.AdamW(model.parameters(), lr=lr)
     dataloader = DataLoader(
@@ -75,10 +86,12 @@ def train_gpt2(
     backward = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
 
-    progress_bar = trange(num_epochs * len(dataloader), unit="batches")
+    total_iterations = num_epochs * len(dataloader)
+    progress_bar = trange(total_iterations, unit="batches")
     for epoch in range(num_epochs):
         for minibatch, (context, labels) in enumerate(dataloader):
-            progress_bar.set_description_str(f"Epoch {epoch} | Minibatch {minibatch} ")
+            current_iteration = epoch * len(dataloader) + minibatch
+            progress_bar.set_description(f"Epoch {epoch}, Minibatch {minibatch}")
             model.train()
             assert isinstance(context, torch.Tensor)
             assert isinstance(labels, torch.Tensor)
@@ -86,7 +99,8 @@ def train_gpt2(
 
             # Forward pass
             forward.record()
-            loss = model(context, labels=labels).loss
+            with torch.autocast(device, dtype=torch.bfloat16, enabled=enable_bf16_amp):
+                loss = model(context, labels=labels).loss
             assert isinstance(loss, torch.Tensor)
 
             # Backward pass
@@ -106,7 +120,12 @@ def train_gpt2(
             stat_tracker.record_tokens_processed(context.numel())
             progress_bar.update()
 
-            if (epoch * len(dataloader) + minibatch) % logging_interval == 0:
+            if (
+                logging_interval is not None
+                and current_iteration % logging_interval == 0
+                or log_final_iteration
+                and current_iteration == total_iterations - 1
+            ):
                 with torch.no_grad():
                     model.eval()
                     progress_bar.write(
