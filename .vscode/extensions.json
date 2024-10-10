@@ -2,6 +2,7 @@
   "recommendations": [
     "ms-vscode-remote.remote-containers",
     "ms-toolsai.jupyter",
-    "ms-vscode-remote.remote-ssh"
+    "ms-vscode-remote.remote-ssh",
+    "ms-toolsai.vscode-jupyter-powertoys"
   ]
 }

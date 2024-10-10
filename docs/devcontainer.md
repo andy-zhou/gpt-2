@@ -109,3 +109,8 @@ sudo docker run --gpus all nvidia/cuda:12.6.1-devel-ubuntu24.04 nvidia-smi
 See [docs](https://pixi.sh/latest/ide_integration/devcontainer/)
 
 Something unexpected: The devcontainer will use your local machine's SSH agent, not the remote host's.
+
+## Jupyter Notebook in the Dev Container
+
+Due to [this issue](https://github.com/microsoft/vscode-jupyter/issues/1378), the Jupyter kernel will restart
+every the window is loaded. As a workaround, I use `tmux` to keep a Jupyter server running in the background.
