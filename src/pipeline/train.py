@@ -63,14 +63,13 @@ def train_gpt2(
     # Logging Params
     logging_interval: int | None = None,
     log_final_iteration: bool = True,
+    label: str | None = None,
 ) -> GPT2:
     assert device == "cuda", "Only cuda is supported for training"
     if enable_tf32:
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
+        torch.set_float32_matmul_precision('high')
     else:
-        torch.backends.cuda.matmul.allow_tf32 = False
-        torch.backends.cudnn.allow_tf32 = False
+        torch.set_float32_matmul_precision('highest')
 
     optim = torch.optim.AdamW(model.parameters(), lr=lr)
     dataloader = DataLoader(
@@ -91,7 +90,12 @@ def train_gpt2(
     for epoch in range(num_epochs):
         for minibatch, (context, labels) in enumerate(dataloader):
             current_iteration = epoch * len(dataloader) + minibatch
-            progress_bar.set_description(f"Epoch {epoch}, Minibatch {minibatch}")
+            progress_bar.set_description(
+                (
+                    f"{label + ' | ' if label else ''}"
+                    f"Epoch {epoch}, Minibatch {minibatch}"
+                )
+            )
             model.train()
             assert isinstance(context, torch.Tensor)
             assert isinstance(labels, torch.Tensor)
@@ -130,6 +134,7 @@ def train_gpt2(
                     model.eval()
                     progress_bar.write(
                         (
+                            f"{label + ' | ' if label else ''}"
                             f"Epoch {pad_num(epoch, padding_multiple=4)} | "
                             f"Minibatch {pad_num(minibatch, padding_multiple=4)} | "
                             f"Avg Train Loss: {stat_tracker.average_train_loss():.3f} | "
