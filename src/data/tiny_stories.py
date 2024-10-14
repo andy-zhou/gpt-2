@@ -24,9 +24,11 @@ class TinyStoriesDataset(Dataset):
         ds = load_dataset(
             "roneneldan/TinyStories",
             data_files="data/train-00000-of-00004-2d5a1467fff1081b.parquet",
+            split="train",
         )
+        assert isinstance(ds, Dataset)
         for story in tqdm(
-            ds["train"][:num_stories]["text"],
+            ds[:num_stories]["text"],
             desc="Tokenizing Stories",
             unit=" stories",
         ):
