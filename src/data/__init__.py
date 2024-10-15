@@ -1,1 +1,3 @@
-from .tiny_stories import *
+from .tokenized_dataset import TokenizedDataset
+
+__all__ = ["TokenizedDataset"]
