@@ -1,4 +1,7 @@
 from collections.abc import Iterator, Iterable
+from typing import TypeVar
+
+T = TypeVar("T")
 
 
 def skip(it: Iterator, n: int):
@@ -11,7 +14,7 @@ def skip(it: Iterator, n: int):
     return it
 
 
-def next_n(it: Iterator, n: int):
+def next_n(it: Iterator[T], n: int):
     """Return the next n elements of the given iterable. Similar to islice but includes some additional checks."""
     return NextNIterator(it, n)
 
