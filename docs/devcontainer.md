@@ -98,6 +98,11 @@ The NVIDIA Container Toolkit allows you to access NVIDIA GPUs from Docker contai
 
 1. [Install NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 2. Restart Docker
+
+   ```bash
+   sudo systemctl restart docker
+   ```
+
 3. Run the following command to test that the NVIDIA Container Toolkit is installed correctly:
 
 ```bash
