@@ -20,7 +20,7 @@ class TokenizedDataset(IterableDataset[tuple[torch.Tensor, torch.Tensor]]):
         # Loading params
         dataset: str | HuggingFaceDatasetDict = "azhou890/tinystories-gpt-2",
         streaming: bool = False,
-        split: Literal["train", "test"] = "train",
+        split: Literal["train", "validation"] = "train",
         token_column_name: str = "tokens",
         # Distributed params
         rank: int = 0,

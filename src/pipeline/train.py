@@ -1,17 +1,17 @@
 from statistics import mean
 import torch
 import torch.amp
+import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 from tqdm.autonotebook import trange
 
-from ..modules import GPT2
 from ..utils import pad_num
 from ..data import TokenizedDataset, MicroBatchDataLoader, MiniBatch
 from .eval import eval_gpt2
 
 
 class MinibatchStatTracker:
-    def __init__(self, device: str):
+    def __init__(self, device: str | int):
         self.forward = torch.cuda.Event(enable_timing=True)
         self.backward = torch.cuda.Event(enable_timing=True)
         self.end = torch.cuda.Event(enable_timing=True)
@@ -79,10 +79,10 @@ class StatTracker:
 
 
 def train_gpt2_with_grad_accumulation(
-    model: GPT2,
+    model: nn.Module,
     batch: MiniBatch,
     optimizer: Optimizer,
-    device: str,
+    device: str | int,
     enable_bf16_amp: bool,
     stat_tracker: MinibatchStatTracker | None,
 ) -> None:
@@ -96,7 +96,7 @@ def train_gpt2_with_grad_accumulation(
         # Forward pass
         if stat_tracker:
             stat_tracker.record_forward()
-        with torch.autocast(device, dtype=torch.bfloat16, enabled=enable_bf16_amp):
+        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=enable_bf16_amp):
             loss = model(context, labels=labels).loss / len(batch)
             assert isinstance(loss, torch.Tensor)
 
@@ -117,14 +117,14 @@ def train_gpt2_with_grad_accumulation(
 
 def train_gpt2(
     # Training Params
-    model: GPT2,
+    model: nn.Module,
     train_dataset: TokenizedDataset,
     eval_dataset: TokenizedDataset | None,
     batch_size: int = 4,
     micro_batch_size: int | None = None,
     num_epochs: int = 1,
     lr: float = 3e-4,
-    device: str = "cuda",
+    device: str | int = "cuda",
     # Optimization Params
     enable_tf32: bool = False,
     enable_bf16_amp: bool = False,
@@ -133,7 +133,7 @@ def train_gpt2(
     log_final_iteration: bool = True,
     display_progress: bool = True,
     label: str | None = None,
-) -> GPT2:
+):
     if enable_tf32:
         torch.set_float32_matmul_precision("high")
     else:
@@ -208,5 +208,3 @@ def train_gpt2(
                         )
                     )
                 stat_tracker.reset()
-
-    return model
