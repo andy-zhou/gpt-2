@@ -1,8 +1,9 @@
 from statistics import mean
 import torch
+import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 
-from ..modules import GPT2, GPT2Output
+from ..modules import GPT2Output
 
 
 EVAL_GENERATOR_SEED = 42
@@ -11,9 +12,10 @@ EVAL_DEVICE = "cuda"
 
 @torch.no_grad()
 def eval_gpt2(
-    model: GPT2,
+    model: nn.Module,
     dataset: Dataset,
     batch_size: int = 4,
+    device: str | int = EVAL_DEVICE,
 ) -> float:
     model.eval()
 
@@ -23,7 +25,7 @@ def eval_gpt2(
     for context, labels in dataloader:
         assert isinstance(context, torch.LongTensor)
         assert isinstance(labels, torch.LongTensor)
-        context, labels = context.to(EVAL_DEVICE), labels.to(EVAL_DEVICE)
+        context, labels = context.to(device), labels.to(device)
         output = model(context, labels)
         assert isinstance(output, GPT2Output)
         assert output.loss is not None
