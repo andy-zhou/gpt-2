@@ -18,8 +18,8 @@ def main():
     device = rank % torch.cuda.device_count()
 
     # Model Params
-    batch_size = 64
-    micro_batch_size = 8
+    batch_size = 2**18
+    micro_batch_size = 16
     num_heads = 12
     embed_dim = 768
     context_len = 1024
@@ -54,7 +54,9 @@ def main():
         device=device,
         enable_tf32=True,
         enable_bf16_amp=True,
-        logging_interval=10,
+        logging_interval=10 if rank == 0 else None,
+        log_final_iteration=True if rank == 0 else False,
+        display_progress=True if rank == 0 else False,
     )
 
     dist.destroy_process_group()

@@ -15,6 +15,7 @@ def eval_gpt2(
     model: nn.Module,
     dataset: Dataset,
     batch_size: int = 4,
+    device: str | int = EVAL_DEVICE,
 ) -> float:
     model.eval()
 
@@ -24,7 +25,7 @@ def eval_gpt2(
     for context, labels in dataloader:
         assert isinstance(context, torch.LongTensor)
         assert isinstance(labels, torch.LongTensor)
-        context, labels = context.to(EVAL_DEVICE), labels.to(EVAL_DEVICE)
+        context, labels = context.to(device), labels.to(device)
         output = model(context, labels)
         assert isinstance(output, GPT2Output)
         assert output.loss is not None

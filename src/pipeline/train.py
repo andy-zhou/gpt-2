@@ -201,7 +201,7 @@ def train_gpt2(
                             f"Epoch {pad_num(epoch, padding_multiple=4)} | "
                             f"Minibatch {pad_num(minibatch_idx, padding_multiple=4)} | "
                             f"Avg Train Loss: {stat_tracker.average_train_loss():.3f} | "
-                            f"Eval Loss: {eval_gpt2(model=model, dataset=eval_dataset, batch_size=micro_batch_size or batch_size):.3f} | "
+                            f"Eval Loss: {eval_gpt2(model=model, dataset=eval_dataset, batch_size=micro_batch_size or batch_size, device=device):.3f} | "
                             f"Tokens/ms: {stat_tracker.tokens_per_ms:.2f} | "
                             f"Avg Forward Time: {stat_tracker.avg_forward_time:.2f} | "
                             f"Avg Backward Time: {stat_tracker.avg_backward_time:.2f}"
